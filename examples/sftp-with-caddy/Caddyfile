@@ -1,0 +1,6 @@
+http://*:80 {
+	root /var/www/html/
+	browse /
+	log / stdout
+	errors stderr
+}
