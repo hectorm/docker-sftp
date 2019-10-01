@@ -30,10 +30,19 @@ RUN curl -Lo /tmp/busybox.tbz2 "${BUSYBOX_TARBALL_URL:?}"
 RUN printf '%s' "${BUSYBOX_TARBALL_CHECKSUM:?}  /tmp/busybox.tbz2" | sha256sum -c
 RUN tar -xjf /tmp/busybox.tbz2 --strip-components=1 -C /tmp/busybox/
 RUN make allnoconfig
-RUN sed -i 's|^# \(CONFIG_STATIC\) is not set$|\1=y|' ./.config
-RUN sed -i 's|^# \(CONFIG_LFS\) is not set$|\1=y|' ./.config
-RUN sed -i 's|^# \(CONFIG_BUSYBOX\) is not set$|\1=y|' ./.config
-RUN sed -i 's|^# \(CONFIG_HUSH\) is not set$|\1=y|' ./.config
+RUN setcfg() { sed -ri "s/^(# )?(${1:?})( is not set|=.*)$/\2=${2?}/" ./.config; } \
+	&& setcfg CONFIG_STATIC          y \
+	&& setcfg CONFIG_LFS             y \
+	&& setcfg CONFIG_BUSYBOX         y \
+	&& setcfg CONFIG_SH_IS_ASH       n \
+	&& setcfg CONFIG_SH_IS_HUSH      y \
+	&& setcfg CONFIG_SH_IS_NONE      n \
+	&& setcfg CONFIG_BASH_IS_ASH     n \
+	&& setcfg CONFIG_BASH_IS_HUSH    n \
+	&& setcfg CONFIG_BASH_IS_NONE    y \
+	&& setcfg CONFIG_HUSH            y \
+	&& setcfg CONFIG_HUSH_[A-Z0-9_]+ n \
+	&& grep -v '^#' ./.config | sort | uniq
 RUN make -j"$(nproc)"
 RUN make install
 RUN ./_install/bin/busybox
