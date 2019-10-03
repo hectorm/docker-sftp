@@ -10,8 +10,16 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
 	ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N '' >/dev/null
 fi
 
+# Load all files from the "/etc/sftp-users.d/" directory
+NL=$(printf '\nx'); NL=${NL%x}
+for f in /etc/sftp-users.d/*; do
+	[ -f "${f:?}" ] || continue
+	SFTP_USERS_FRAGMENT=$(cat "${f:?}")
+	SFTP_USERS=${SFTP_USERS?}${NL:?}${SFTP_USERS_FRAGMENT?}
+done
+
 # Create SFTP users
-_IFS=$IFS; IFS="$(printf '\nx')"; IFS="${IFS%x}"
+_IFS=${IFS}; IFS=${NL:?}
 for entry in ${SFTP_USERS?}; do
 	user=${entry%%:*};  entry=${entry#*:}
 	pass=${entry%%:*};  entry=${entry#*:}
@@ -21,11 +29,18 @@ for entry in ${SFTP_USERS?}; do
 	dirs=${entry%%:*};  entry=${entry#*:}
 
 	home=/home/${user:?}
+	shell=/bin/sh
+	groups=ssh-user
 
-	# Create user and group
-	if ! id -u "${user:?}" >/dev/null 2>&1; then
-		groupadd -g "${gid:?}" "${user:?}"
-		useradd -u "${uid:?}" -g "${gid:?}" -G ssh-user -Md "${home:?}" -s /bin/sh "${user:?}"
+	# Print entry information
+	printf -- '%s\n' "${user}:::${uid}:${gid}:${dirs}"
+
+	# Create user and group if they do not exist
+	if ! getent group "${gid:?}" >/dev/null 2>&1; then
+		groupadd -g "${gid:?}" "g_${gid:?}"
+	fi
+	if ! getent passwd "${uid:?}" >/dev/null 2>&1; then
+		useradd -u "${uid:?}" -g "${gid:?}" -Md "${home:?}" -s "${shell:?}" -G "${groups:?}" "${user:?}"
 	fi
 
 	# Set user password
@@ -53,7 +68,7 @@ for entry in ${SFTP_USERS?}; do
 	# Create "${home}/.ssh/authorized_keys" file
 	rm -f "${home:?}/.ssh/authorized_keys"
 	touch "${home:?}/.ssh/authorized_keys"
-	chown "${user:?}:${user:?}" "${home:?}/.ssh/authorized_keys"
+	chown "${uid:?}:${gid:?}" "${home:?}/.ssh/authorized_keys"
 	chmod 600 "${home:?}/.ssh/authorized_keys"
 	if [ -d "${home:?}/.ssh/authorized_keys.d/" ]; then
 		for key in "${home:?}/.ssh/authorized_keys.d/"*; do
@@ -68,7 +83,7 @@ for entry in ${SFTP_USERS?}; do
 		fulldir=$(readlink -m "${home:?}/data/${dir:?}")
 		if [ "${fulldir:?}" != "${fulldir#${home:?}/data/}" ]; then
 			mkdir -p "${fulldir:?}"
-			chown "${user:?}:${user:?}" "${fulldir:?}"
+			chown "${uid:?}:${gid:?}" "${fulldir:?}"
 		fi
 	done
 	IFS=$_IFS

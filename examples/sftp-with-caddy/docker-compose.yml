@@ -19,10 +19,11 @@ services:
     ports:
       - "2222:22/tcp"
     environment:
+      # USERNAME:PASSWORD:(plain|encrypted):UID:GID:[dir1,dir2,dir3,...]
       SFTP_USERS: |
-        alice:::1000:1000:public,private
-        bob:password:plain:1001:1001:public,private
-        dan:$$5$$salt$$Gcm6FsVtF/Qa77ZKD.iwsJlCVPY0XSMgLJL0Hnww/c1:encrypted:1002:1002:public,private
+        alice:::1000:900:public,private
+        bob:password:plain:1001:900:public,private
+        dan:$$5$$salt$$Gcm6FsVtF/Qa77ZKD.iwsJlCVPY0XSMgLJL0Hnww/c1:encrypted:1002:900:public,private
     volumes:
       - "./keys/host_ed25519.pem:/etc/ssh/ssh_host_ed25519_key"
       - "./keys/host_ed25519.pub:/etc/ssh/ssh_host_ed25519_key.pub"
