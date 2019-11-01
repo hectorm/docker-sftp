@@ -11,6 +11,8 @@ AllowGroups                     ssh-user
 PermitRootLogin                 no
 PermitEmptyPasswords            no
 PermitUserEnvironment           no
+AuthorizedKeysCommand           /usr/local/bin/authorized-keys-cmd %h
+AuthorizedKeysCommandUser       root
 PubkeyAuthentication            yes
 PasswordAuthentication          yes
 ChallengeResponseAuthentication no

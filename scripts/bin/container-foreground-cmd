@@ -60,23 +60,6 @@ for entry in ${SFTP_USERS?}; do
 	chown root:root "${home:?}"
 	chmod 755 "${home:?}"
 
-	# Create "${home}/.ssh/" directory
-	[ -e "${home:?}/.ssh" ] || mkdir "${home:?}/.ssh"
-	chown root:root "${home:?}/.ssh"
-	chmod 755 "${home:?}/.ssh"
-
-	# Create "${home}/.ssh/authorized_keys" file
-	rm -f "${home:?}/.ssh/authorized_keys"
-	touch "${home:?}/.ssh/authorized_keys"
-	chown "${uid:?}:${gid:?}" "${home:?}/.ssh/authorized_keys"
-	chmod 600 "${home:?}/.ssh/authorized_keys"
-	if [ -d "${home:?}/.ssh/authorized_keys.d/" ]; then
-		for key in "${home:?}/.ssh/authorized_keys.d/"*; do
-			[ -f "${key:?}" ] || continue
-			cat "${key:?}" >> "${home:?}/.ssh/authorized_keys"
-		done
-	fi
-
 	# Create user directories
 	_IFS=$IFS; IFS=,
 	for dir in ${dirs?}; do

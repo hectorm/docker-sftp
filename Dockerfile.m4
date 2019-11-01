@@ -113,9 +113,11 @@ RUN sed -i 's|^\(.*pam_motd\.so.*\)$|#\1|g' /etc/pam.d/sshd
 
 # Copy SSH config
 COPY --chown=root:root config/ssh/ /etc/ssh/
+RUN chmod 644 /etc/ssh/sshd_config
 
 # Copy scripts
 COPY --chown=root:root scripts/bin/ /usr/local/bin/
+RUN chmod 755 /usr/local/bin/*
 
 # Expose SSH port
 EXPOSE 22/tcp

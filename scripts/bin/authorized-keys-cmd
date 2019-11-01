@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -eu
+
+home=${1:?}
+
+if [ -d "${home:?}/.ssh/authorized_keys.d/" ]; then
+	for key in "${home:?}/.ssh/authorized_keys.d/"*; do
+		[ -f "${key:?}" ] && cat "${key:?}"
+	done
+fi
