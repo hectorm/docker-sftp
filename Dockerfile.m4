@@ -64,7 +64,7 @@ RUN ./rsync --version
 ## "sftp" stage
 ##################################################
 
-m4_ifdef([[CROSS_ARCH]], [[FROM docker.io/CROSS_ARCH/ubuntu:18.04]], [[FROM docker.io/ubuntu:18.04]]) AS sftp
+m4_ifdef([[CROSS_ARCH]], [[FROM docker.io/CROSS_ARCH/ubuntu:20.04]], [[FROM docker.io/ubuntu:20.04]]) AS sftp
 m4_ifdef([[CROSS_QEMU]], [[COPY --from=docker.io/hectormolinero/qemu-user-static:latest CROSS_QEMU CROSS_QEMU]])
 
 # Install system packages
@@ -81,14 +81,14 @@ RUN export DEBIAN_FRONTEND=noninteractive \
 		/var/lib/apt/lists/*
 
 # Setup locale
-RUN printf '%s\n' 'en_US.UTF-8 UTF-8' > /etc/locale.gen
-RUN localedef -c -i en_US -f UTF-8 en_US.UTF-8 ||:
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
+	&& localedef -c -i "${LANG%%.*}" -f UTF-8 "${LANG:?}" ||:
 
 # Setup timezone
 ENV TZ=UTC
-RUN ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
-RUN printf '%s\n' "${TZ:?}" > /etc/timezone
+RUN printf '%s\n' "${TZ:?}" > /etc/timezone \
+	&& ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
 
 ### USERNAME:PASSWORD:(plain|encrypted):UID:GID:[dir1,dir2,dir3,...] ...
 ENV SFTP_USERS=
