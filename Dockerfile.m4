@@ -12,7 +12,13 @@ RUN apk add --no-cache \
 		build-base \
 		ca-certificates \
 		curl \
-		perl
+		lz4-dev \
+		lz4-static \
+		openssl-dev \
+		openssl-libs-static \
+		perl \
+		zstd-dev \
+		zstd-static
 
 # Switch to unprivileged user
 ENV USER=builder GROUP=builder
@@ -56,7 +62,7 @@ WORKDIR /tmp/rsync/
 RUN curl -Lo /tmp/rsync.tgz "${RSYNC_TARBALL_URL:?}"
 RUN printf '%s' "${RSYNC_TARBALL_CHECKSUM:?}  /tmp/rsync.tgz" | sha256sum -c
 RUN tar -xzf /tmp/rsync.tgz --strip-components=1 -C /tmp/rsync/
-RUN ./configure CFLAGS='-static'
+RUN ./configure CFLAGS='-static' --disable-xxhash
 RUN make -j"$(nproc)"
 RUN ./rsync --version
 
