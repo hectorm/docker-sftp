@@ -54,9 +54,9 @@ RUN make install
 RUN ./_install/bin/busybox
 
 # Build rsync
-ARG RSYNC_VERSION=3.2.1
+ARG RSYNC_VERSION=3.2.2
 ARG RSYNC_TARBALL_URL=https://download.samba.org/pub/rsync/src/rsync-${RSYNC_VERSION}.tar.gz
-ARG RSYNC_TARBALL_CHECKSUM=95f2dd62979b500a99b34c1a6453a0787ada0330e4bec7fcffad37b9062d58d3
+ARG RSYNC_TARBALL_CHECKSUM=644bd3841779507665211fd7db8359c8a10670c57e305b4aab61b4e40037afa8
 RUN mkdir /tmp/rsync/
 WORKDIR /tmp/rsync/
 RUN curl -Lo /tmp/rsync.tgz "${RSYNC_TARBALL_URL:?}"
