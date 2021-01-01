@@ -27,9 +27,9 @@ RUN adduser -S -G "${GROUP:?}" "${USER:?}"
 USER "${USER}:${GROUP}"
 
 # Build Busybox
-ARG BUSYBOX_VERSION=1.32.0
+ARG BUSYBOX_VERSION=1.33.0
 ARG BUSYBOX_TARBALL_URL=https://busybox.net/downloads/busybox-${BUSYBOX_VERSION}.tar.bz2
-ARG BUSYBOX_TARBALL_CHECKSUM=c35d87f1d04b2b153d33c275c2632e40d388a88f19a9e71727e0bbbff51fe689
+ARG BUSYBOX_TARBALL_CHECKSUM=d568681c91a85edc6710770cebc1e80e042ad74d305b5c2e6d57a5f3de3b8fbd
 RUN mkdir /tmp/busybox/
 WORKDIR /tmp/busybox/
 RUN curl -Lo /tmp/busybox.tbz2 "${BUSYBOX_TARBALL_URL:?}"
