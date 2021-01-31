@@ -1,6 +1,9 @@
-http://*:80 {
-	root /var/www/html/
-	browse /
-	log / stdout
-	errors stderr
+:8080 {
+	root /* /var/www/data/
+	file_server /* browse
+
+	log {
+		output stdout
+		format formatted "{common_log} \"{request>headers>Referer>[0]}\" \"{request>headers>User-Agent>[0]}\""
+	}
 }

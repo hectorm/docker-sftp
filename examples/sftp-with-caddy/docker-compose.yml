@@ -1,47 +1,39 @@
-version: "3.7"
+version: "3.9"
 
 services:
 
   caddy:
-    image: "docker.io/hectormolinero/caddy:latest"
+    image: "docker.io/hectormolinero/caddy2:latest"
     restart: "on-failure:3"
     ports:
-      - "8080:80/tcp"
+      - "8080:8080/tcp"
     volumes:
       - "./Caddyfile:/etc/caddy/Caddyfile:ro"
-      - "public-alice:/var/www/html/alice/:ro"
-      - "public-bob:/var/www/html/bob/:ro"
-      - "public-dan:/var/www/html/dan/:ro"
+      - "www-alice:/var/www/data/alice/:ro"
+      - "www-bob:/var/www/data/bob/:ro"
+      - "www-dan:/var/www/data/dan/:ro"
 
   sftp:
     image: "docker.io/hectormolinero/sftp:latest"
     restart: "on-failure:3"
     ports:
-      - "2222:22/tcp"
+      - "2222:2222/tcp"
     environment:
-      # USERNAME:PASSWORD:(plain|encrypted):UID:GID:[dir1,dir2,dir3,...]
+      # USERNAME:(plain|encrypted):PASSWORD:UID:GID
       SFTP_USERS: |
-        alice:::1000:900:public,private
-        bob:password:plain:1001:900:public,private
-        dan:$$5$$salt$$Gcm6FsVtF/Qa77ZKD.iwsJlCVPY0XSMgLJL0Hnww/c1:encrypted:1002:900:public,private
+        alice:::1000:1000
+        bob:plain:password:1001:1001
+        dan:encrypted:$$5$$salt$$Gcm6FsVtF/Qa77ZKD.iwsJlCVPY0XSMgLJL0Hnww/c1:1002:1002
     volumes:
-      - "./keys/host_ed25519.pem:/etc/ssh/ssh_host_ed25519_key"
-      - "./keys/host_ed25519.pub:/etc/ssh/ssh_host_ed25519_key.pub"
-      - "./keys/host_rsa.pem:/etc/ssh/ssh_host_rsa_key"
-      - "./keys/host_rsa.pub:/etc/ssh/ssh_host_rsa_key.pub"
-      - "./keys/alice_ed25519.pub:/home/alice/.ssh/authorized_keys.d/alice_ed25519.pub"
-      - "public-alice:/home/alice/data/public/"
-      - "private-alice:/home/alice/data/private/"
-      - "public-bob:/home/bob/data/public/"
-      - "private-bob:/home/bob/data/private/"
-      - "public-dan:/home/dan/data/public/"
-      - "private-dan:/home/dan/data/private/"
+      - "./keys/alice_ed25519.pub:/home/alice/.ssh/authorized_keys.d/alice_ed25519.pub:ro"
+      - "sftp-keys:/etc/sftp/"
+      - "www-alice:/home/alice/data/"
+      - "www-bob:/home/bob/data/"
+      - "www-dan:/home/dan/data/"
 
 volumes:
 
-  public-alice:
-  private-alice:
-  public-bob:
-  private-bob:
-  public-dan:
-  private-dan:
+  sftp-keys:
+  www-alice:
+  www-bob:
+  www-dan:

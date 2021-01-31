@@ -37,8 +37,10 @@ printf -- '%s\n' "Creating \"${CONTAINER_NAME:?}\" container..."
 	--hostname "${CONTAINER_NAME:?}" \
 	--restart on-failure:3 \
 	--log-opt max-size=32m \
-	--publish '2222:22/tcp' \
-	--env SFTP_USERS='alice:password:plain:1000:1000:test' \
+	--publish '2222:2222/tcp' \
+	--env SFTP_USER1='alice:plain:password:1000:1000' \
+	--env SFTP_USER2='bob:plain:password:1001:1001' \
+	--env SFTP_USER3='dan:plain:password:1002:1002' \
 	"${IMAGE_NAME:?}" "$@" >/dev/null
 
 printf -- '%s\n\n' 'Done!'

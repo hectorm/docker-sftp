@@ -17,6 +17,8 @@ RUN apk add --no-cache \
 		openssl-dev \
 		openssl-libs-static \
 		perl \
+		zlib-dev \
+		zlib-static \
 		zstd-dev \
 		zstd-static
 
@@ -37,21 +39,22 @@ RUN printf '%s' "${BUSYBOX_TARBALL_CHECKSUM:?}  /tmp/busybox.tbz2" | sha256sum -
 RUN tar -xjf /tmp/busybox.tbz2 --strip-components=1 -C /tmp/busybox/
 RUN make allnoconfig
 RUN setcfg() { sed -ri "s/^(# )?(${1:?})( is not set|=.*)$/\2=${2?}/" ./.config; } \
-	&& setcfg CONFIG_STATIC          y \
-	&& setcfg CONFIG_LFS             y \
-	&& setcfg CONFIG_BUSYBOX         y \
-	&& setcfg CONFIG_SH_IS_ASH       n \
-	&& setcfg CONFIG_SH_IS_HUSH      y \
-	&& setcfg CONFIG_SH_IS_NONE      n \
-	&& setcfg CONFIG_BASH_IS_ASH     n \
-	&& setcfg CONFIG_BASH_IS_HUSH    n \
-	&& setcfg CONFIG_BASH_IS_NONE    y \
-	&& setcfg CONFIG_HUSH            y \
-	&& setcfg CONFIG_HUSH_[A-Z0-9_]+ n \
+	&& setcfg CONFIG_STATIC                y \
+	&& setcfg CONFIG_LFS                   y \
+	&& setcfg CONFIG_BUSYBOX               y \
+	&& setcfg CONFIG_FEATURE_SH_STANDALONE y \
+	&& setcfg CONFIG_SH_IS_[A-Z0-9_]+      n \
+	&& setcfg CONFIG_SH_IS_ASH             y \
+	&& setcfg CONFIG_BASH_IS_[A-Z0-9_]+    n \
+	&& setcfg CONFIG_BASH_IS_NONE          y \
+	&& setcfg CONFIG_ASH                   y \
+	&& setcfg CONFIG_ASH_[A-Z0-9_]+        n \
+	&& setcfg CONFIG_ASH_PRINTF            y \
+	&& setcfg CONFIG_ASH_TEST              y \
 	&& grep -v '^#' ./.config | sort | uniq
-RUN make -j"$(nproc)"
-RUN make install
-RUN ./_install/bin/busybox
+RUN make -j "$(nproc)" && make install
+RUN test -z "$(readelf -x .interp ./_install/bin/busybox 2>/dev/null)"
+RUN strip -s ./_install/bin/busybox
 
 # Build rsync
 ARG RSYNC_VERSION=3.2.3
@@ -62,9 +65,10 @@ WORKDIR /tmp/rsync/
 RUN curl -Lo /tmp/rsync.tgz "${RSYNC_TARBALL_URL:?}"
 RUN printf '%s' "${RSYNC_TARBALL_CHECKSUM:?}  /tmp/rsync.tgz" | sha256sum -c
 RUN tar -xzf /tmp/rsync.tgz --strip-components=1 -C /tmp/rsync/
-RUN ./configure CFLAGS='-static' --disable-xxhash
-RUN make -j"$(nproc)"
-RUN ./rsync --version
+RUN ./configure CFLAGS='-static' LDFLAGS='-static' --disable-xxhash
+RUN make -j "$(nproc)"
+RUN test -z "$(readelf -x .interp ./rsync 2>/dev/null)"
+RUN strip -s ./rsync
 
 ##################################################
 ## "sftp" stage
@@ -96,23 +100,17 @@ ENV TZ=UTC
 RUN printf '%s\n' "${TZ:?}" > /etc/timezone \
 	&& ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
 
-### USERNAME:PASSWORD:(plain|encrypted):UID:GID:[dir1,dir2,dir3,...] ...
-ENV SFTP_USERS=
-
 # Create "ssh-user" group
 RUN groupadd --gid 999 ssh-user
 
-# Create "/run/sshd/" directory
-RUN mkdir /run/sshd/
+# Create "/etc/sftp/" and "/run/sshd/" directories
+RUN mkdir /etc/sftp/ /run/sshd/
 
 # Create "/etc/skel/" directory
 RUN rm -rf /etc/skel/ && mkdir /etc/skel/
-COPY --from=build --chown=root:root /tmp/busybox/_install/bin/ /etc/skel/bin/
-COPY --from=build --chown=root:root /tmp/rsync/rsync /etc/skel/bin/rsync.real
-# rsync requires "--fake-super" option to avoid problems when establishing permissions in chrooted
-# environments (if you, reader, know some workaround for this, I would be pleased if you open an issue)
-# https://gitlab.alpinelinux.org/alpine/aports/issues/4963
-RUN printf '%s\n' '#!/bin/sh' 'rsync.real --fake-super "$@"' > /etc/skel/bin/rsync && chmod 755 /etc/skel/bin/rsync
+COPY --chown=root:root ./config/skel/ /etc/skel/
+COPY --from=build --chown=root:root /tmp/busybox/_install/bin/busybox /etc/skel/bin/busybox
+COPY --from=build --chown=root:root /tmp/rsync/rsync /etc/skel/bin/rsync
 
 # Disable MOTD
 RUN sed -i 's|^\(.*pam_motd\.so.*\)$|#\1|g' /etc/pam.d/sshd
@@ -124,8 +122,5 @@ RUN chmod 644 /etc/ssh/sshd_config
 # Copy scripts
 COPY --chown=root:root ./scripts/bin/ /usr/local/bin/
 RUN chmod 755 /usr/local/bin/*
-
-# Expose SSH port
-EXPOSE 22/tcp
 
 CMD ["/usr/local/bin/container-foreground-cmd"]

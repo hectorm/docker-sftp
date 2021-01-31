@@ -2,76 +2,56 @@
 
 set -eu
 
-# Generate SSH keys
-if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
-	ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N '' >/dev/null
+if [ ! -f /etc/sftp/sftp_rsa_host_key ]; then
+	ssh-keygen -t rsa -b 4096 -f /etc/sftp/sftp_rsa_host_key -N '' >/dev/null
 fi
-if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
-	ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N '' >/dev/null
+if [ ! -f /etc/sftp/sftp_ed25519_host_key ]; then
+	ssh-keygen -t ed25519 -f /etc/sftp/sftp_ed25519_host_key -N '' >/dev/null
 fi
 
-# Load all files from the "/etc/sftp-users.d/" directory
-NL=$(printf '\nx'); NL=${NL%x}
-for f in /etc/sftp-users.d/*; do
-	[ -f "${f:?}" ] || continue
-	SFTP_USERS_FRAGMENT=$(cat "${f:?}")
-	SFTP_USERS=${SFTP_USERS?}${NL:?}${SFTP_USERS_FRAGMENT?}
-done
+# Merge all variables starting with "SFTP_USER"
+SFTP_USERS=$(awk 'BEGIN { for (v in ENVIRON) if (v ~ /^SFTP_USER/) print(ENVIRON[v]) }')
 
-# Create SFTP users
-_IFS=${IFS}; IFS=${NL:?}
+_IFS=${IFS}; IFS=$(printf '\nx'); IFS=${IFS%x}
 for entry in ${SFTP_USERS?}; do
+	# USERNAME:(plain|encrypted):PASSWORD:UID:GID
 	user=${entry%%:*};  entry=${entry#*:}
-	pass=${entry%%:*};  entry=${entry#*:}
 	ptype=${entry%%:*}; entry=${entry#*:}
+	pass=${entry%%:*};  entry=${entry#*:}
 	uid=${entry%%:*};   entry=${entry#*:}
 	gid=${entry%%:*};   entry=${entry#*:}
-	dirs=${entry%%:*};  entry=${entry#*:}
 
 	home=/home/${user:?}
 	shell=/bin/sh
 	groups=ssh-user
 
-	# Print entry information
-	printf -- '%s\n' "${user}:::${uid}:${gid}:${dirs}"
-
-	# Create user and group if they do not exist
 	if ! getent group "${gid:?}" >/dev/null 2>&1; then
 		groupadd -g "${gid:?}" "g_${gid:?}"
 	fi
 	if ! getent passwd "${uid:?}" >/dev/null 2>&1; then
-		useradd -u "${uid:?}" -g "${gid:?}" -Md "${home:?}" -s "${shell:?}" -G "${groups:?}" "${user:?}"
+		useradd -u "${uid:?}" -g "${gid:?}" -Md "${home:?}" -s "${shell:?}" -G "${groups:?}" -- "${user:?}"
 	fi
 
-	# Set user password
 	if [ -n "${pass?}" ]; then
-		case "${ptype?}" in
-			encrypted) chpasswdOpts='-e' ;;
-			*)         chpasswdOpts=''   ;;
+		printf -- '%s' "${user:?}:${pass:?}" | case "${ptype?}" in
+			encrypted) chpasswd -e ;;
+			*)         chpasswd ;;
 		esac
-		printf '%s' "${user:?}:${pass:?}" | chpasswd ${chpasswdOpts?}
 	else
-		passwd -d "${user:?}" >/dev/null
+		passwd -d -- "${user:?}" >/dev/null
 	fi
 
-	# Create "${home}" directory
-	[ -e "${home:?}" ] || mkdir "${home:?}"
-	cp -aT /etc/skel/ "${home:?}"
-	chown root:root "${home:?}"
-	chmod 755 "${home:?}"
+	if [ ! -e "${home:?}"/data/ ]; then
+		mkdir -p "${home:?}"/data/
+	fi
 
-	# Create user directories
-	_IFS=$IFS; IFS=,
-	for dir in ${dirs?}; do
-		fulldir=$(readlink -m "${home:?}/data/${dir:?}")
-		if [ "${fulldir:?}" != "${fulldir#${home:?}/data/}" ]; then
-			mkdir -p "${fulldir:?}"
-			chown "${uid:?}:${gid:?}" "${fulldir:?}"
-		fi
-	done
-	IFS=$_IFS
+	cp -aT /etc/skel/ "${home:?}"
+
+	chmod 755 "${home:?}"
+	chown root:root "${home:?}"
+
+	chown -R "${uid:?}:${gid:?}" "${home:?}"/data/ 2>/dev/null ||:
 done
 IFS=$_IFS
 
-# Run sshd
 exec "$(command -v sshd)" -D -e

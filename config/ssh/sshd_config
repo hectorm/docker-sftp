@@ -1,8 +1,8 @@
 Protocol                        2
-HostKey                         /etc/ssh/ssh_host_ed25519_key
-HostKey                         /etc/ssh/ssh_host_rsa_key
+HostKey                         /etc/sftp/sftp_rsa_host_key
+HostKey                         /etc/sftp/sftp_ed25519_host_key
 ListenAddress                   0.0.0.0
-Port                            22
+Port                            2222
 UseDNS                          no
 UsePAM                          yes
 X11Forwarding                   no
