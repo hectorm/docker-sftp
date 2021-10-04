@@ -6,6 +6,6 @@ home=${1:?}
 
 if [ -d "${home:?}/.ssh/authorized_keys.d/" ]; then
 	for key in "${home:?}/.ssh/authorized_keys.d/"*; do
-		[ -f "${key:?}" ] && cat "${key:?}"
+		[ -f "${key:?}" ] && awk 1 "${key:?}"
 	done
 fi
