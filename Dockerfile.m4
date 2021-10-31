@@ -111,16 +111,20 @@ RUN rm -rf /etc/skel/ && mkdir /etc/skel/
 COPY --chown=root:root ./config/skel/ /etc/skel/
 COPY --from=build --chown=root:root /tmp/busybox/_install/bin/busybox /etc/skel/bin/busybox
 COPY --from=build --chown=root:root /tmp/rsync/rsync /etc/skel/bin/rsync
+RUN find /etc/skel/ -type d -not -perm 0755 -exec chmod 0755 '{}' ';'
+RUN find /etc/skel/ -type f -not -perm 0644 -exec chmod 0644 '{}' ';'
+RUN find /etc/skel/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' ';'
 
 # Disable MOTD
 RUN sed -i 's|^\(.*pam_motd\.so.*\)$|#\1|g' /etc/pam.d/sshd
 
 # Copy SSH config
 COPY --chown=root:root ./config/ssh/ /etc/ssh/
-RUN chmod 644 /etc/ssh/sshd_config
+RUN find /etc/ssh/sshd_config -type f -not -perm 0644 -exec chmod 0644 '{}' ';'
 
 # Copy scripts
 COPY --chown=root:root ./scripts/bin/ /usr/local/bin/
-RUN chmod 755 /usr/local/bin/*
+RUN find /usr/local/bin/ -type d -not -perm 0755 -exec chmod 0755 '{}' ';'
+RUN find /usr/local/bin/ -type f -not -perm 0755 -exec chmod 0755 '{}' ';'
 
 ENTRYPOINT ["/usr/local/bin/container-init"]
