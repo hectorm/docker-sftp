@@ -33,7 +33,7 @@ for entry in ${SFTP_USERS?}; do
 	fi
 
 	if [ -n "${pass?}" ]; then
-		printf -- '%s' "${user:?}:${pass:?}" | case "${ptype?}" in
+		printf '%s' "${user:?}:${pass:?}" | case "${ptype?}" in
 			encrypted) chpasswd -e ;;
 			*)         chpasswd ;;
 		esac
