@@ -123,4 +123,4 @@ RUN chmod 644 /etc/ssh/sshd_config
 COPY --chown=root:root ./scripts/bin/ /usr/local/bin/
 RUN chmod 755 /usr/local/bin/*
 
-CMD ["/usr/local/bin/container-foreground-cmd"]
+ENTRYPOINT ["/usr/local/bin/container-init"]
