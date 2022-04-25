@@ -14,7 +14,7 @@ services:
       - "www-dan:/var/www/data/dan/:ro"
 
   sftp:
-    image: "docker.io/hectormolinero/sftp:latest"
+    image: "docker.io/hectorm/sftp:latest"
     restart: "on-failure:3"
     ports:
       - "2222:2222/tcp"
