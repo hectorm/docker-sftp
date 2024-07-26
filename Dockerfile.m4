@@ -73,7 +73,7 @@ RUN strip -s ./rsync
 ## "main" stage
 ##################################################
 
-m4_ifdef([[CROSS_ARCH]], [[FROM docker.io/CROSS_ARCH/ubuntu:22.04]], [[FROM docker.io/ubuntu:22.04]]) AS main
+m4_ifdef([[CROSS_ARCH]], [[FROM docker.io/CROSS_ARCH/ubuntu:24.04]], [[FROM docker.io/ubuntu:24.04]]) AS main
 
 # Install system packages
 RUN export DEBIAN_FRONTEND=noninteractive \
@@ -97,6 +97,9 @@ RUN printf '%s\n' "${LANG:?} UTF-8" > /etc/locale.gen \
 ENV TZ=UTC
 RUN printf '%s\n' "${TZ:?}" > /etc/timezone \
 	&& ln -snf "/usr/share/zoneinfo/${TZ:?}" /etc/localtime
+
+# Remove "ubuntu" user
+RUN userdel -rf ubuntu
 
 # Create "ssh-user" group
 RUN groupadd --gid 999 ssh-user
